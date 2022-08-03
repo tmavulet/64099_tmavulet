@@ -1,0 +1,168 @@
+---
+title: "Machine learning decision tree"
+author: "Tejasvini Mavuleti"
+date: "2022-08-03"
+output: word_document
+---
+```{r}
+library(rpart)
+library(caret)
+library(e1071)
+library(DMwR2)
+
+```
+
+
+
+```{r}
+set.seed(100)
+options(warm=-1)
+library(lubridate)
+library(ggplot2)
+library(randomForest)
+library(dplyr)
+library(rpart)
+library(caret)
+library(caretEnsemble)
+library(e1071)
+library(corrplot)
+library(mlbench)
+library(pROC)
+
+clean_dataset <- function() {
+  datasetloc = "C:/Users/mavul/OneDrive/Desktop/Health care data.csv"
+  if (file.exists(datasetloc)) {
+    data <- read.csv(file=datasetloc, header = T)
+  }
+  return(data)
+}
+
+```
+
+```{r}
+age <- function(dob, age.day = today(), units = "years", floor = TRUE) {
+  calc.age = interval(dob, age.day) / duration(num = 1, units = units)
+  if (floor) return(as.integer(floor(calc.age)))
+  
+  return(calc.age)
+}
+
+age_group <- function(ag) {
+  ifelse(ag<25,25, ifelse(ag<40, 40, ifelse(ag<50,50,65)))
+}
+
+e_europe <- c('Ukraine','Russia','Poland','Czech Republic','Hungary')
+w_europe <- c('Austria','Belgium','France','Germany','Italy','Netherlands','Portugal','Spain','Switzerland')
+n_europe <- c('Sweden', 'Finland', 'Denmark')
+c_europe <- c('England','Scotland','Ireland')
+
+ethnic_group <- function(countryname) {
+  ifelse((countryname %in% e_europe), 'e_europe',
+         ifelse((countryname %in% w_europe) ,'w_europe',
+                ifelse((countryname %in% n_europe), 'n_europe',
+                       ifelse((countryname %in% c_europe), 'c_europe',
+                              countryname))))
+}
+
+patients <- clean_dataset()
+
+```
+
+```{r}
+#Removing the patient IDs from the data set
+
+patients <- patients[,-1]
+str(patients)
+summary(patients)
+
+```
+
+```{r}
+patients$education <- ifelse(patients$education == 'highscool', as.character('highschool'), as.character(patients$education))
+patients$education <- ifelse(as.factor(patients$education) == 'phD/MD', as.character('phd/md'), as.character(patients$education))
+patients$education <- as.factor(patients$education)
+
+patients$ancestry <- as.factor(ethnic_group(patients$ancestry))
+
+patients$age <- age(patients$dob)
+
+binary_value <- function(value, compare_to) {
+  ifelse(value==compare_to,1,0)
+}
+
+patients$prostate_cancer <- binary_value(patients$disease,'prostate cancer')
+patients$skin_cancer <- binary_value(patients$disease,'skin cancer')
+patients$breast_cancer <- binary_value(patients$disease,'breast cancer')
+patients$hiv_aids <- binary_value(patients$disease,'HIV/AIDS')
+patients$diabetes <- binary_value(patients$disease,'diabetes')
+patients$heart_disease <- binary_value(patients$disease,'heart disease')
+patients$hypertension <- binary_value(patients$disease,'hypertension')
+patients$endometriosis <- binary_value(patients$disease,'endometriosis')
+patients$multiple_sclerosis <- binary_value(patients$disease,'multiple sclerosis')
+patients$schizophrenia <- binary_value(patients$disease,'schizophrenia')
+patients$kidney_disease <- binary_value(patients$disease,'kidney disease')
+patients$gastritis <- binary_value(patients$disease,'gastritis')
+patients$alzheimer <- binary_value(patients$disease,'Alzheimer disease')
+str(patients)
+```
+
+
+```{r}
+os_alzheimer <- select(patients, age, employment_status, education, marital_status, ancestry, available_vehicles, avg_commute,zipcode, children,daily_internet_use,military_service, alzheimer)
+train <- sample(nrow(os_alzheimer), 0.7*nrow(os_alzheimer), replace = FALSE)
+TrainSet <- os_alzheimer[train,]
+TestSet <- os_alzheimer[-train,]
+summary(TrainSet)
+summary(TestSet)
+```
+# Compare model of Random Forest with Decision Tree model
+
+```{r}
+ctrl <- trainControl(method = "repeatedcv", 
+                     number = 10, 
+                     repeats = 10, 
+                     verboseIter = FALSE,
+                     sampling = "smote")
+
+set.seed(42)
+patients <- read.csv("C:/Users/mavul/OneDrive/Desktop/Health care data.csv")
+patients <- patients[ ,14]
+str(patients)
+
+model_rf_smote <- caret::train(disease ~ .,
+                               data = patients,
+                               method = "rf",
+                               preProcess = c("scale", "center"),
+                               trControl = ctrl)
+
+```
+
+```{r}
+response <- as.factor(TrainSet$os_alzheimer)
+input <- select(TrainSet, age, employment_status, education, marital_status, ancestry)
+
+ubUnder <- function(X= input, Y=response, perc=40, method="percPos"){
+} 
+
+data <- ubUnder(X=input, Y=response, perc=40, method="percPos")
+us_alzheimer <- cbind(data$X, class=data$Y)
+
+ubOver <- function(X= input, Y=response, perc=40, method="percPos"){
+} 
+
+data <- ubOver(X=input, Y=response)
+os_alzheimer <- cbind(data$X, class=data$Y)
+
+ubSMOTE <- function(X= input, Y=response, perc=40, method="percPos"){
+} 
+
+data <- ubSMOTE(X=input, Y=response)
+smote_alzheimer <- cbind(data$X, class=data$Y)
+
+train_control <- trainControl(method = "repeatedcv", number = 10, repeats=3, savePredictions = TRUE)
+ubUnder <- function(X= input, Y=response, perc=40, method="percPos"){
+}
+
+summary(clean_dataset())
+```
+

@@ -1,0 +1,134 @@
+---
+title: "Data Cleaning"
+author: "Tejasvini Mavuleti"
+date: "2022-08-03"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+library(lubridate)
+library(dplyr)
+library(reprex)
+library(ggplot2)
+
+```{r}
+clean_data <- function() {
+  patientdata = "C:/Users/mavul/OneDrive/Desktop/Health care data.csv"
+  if (file.exists(patientdata)) {
+    #dataset <- read.csv(file=patientdata, stringsAsFactors = FALSE, header = T)
+    dataset <- read.csv(file=patientdata, header = T)
+  }
+  return(dataset)
+}
+```
+
+```{r}
+age <- function(dob, age.day = today(), units = "years", floor = TRUE) {
+  calc.age = interval(dob, age.day) / duration(num = 1, units = units)
+  if (floor) return(as.integer(floor(calc.age)))
+  
+  return(calc.age)
+}
+
+age_group <- function(ag) {
+  ifelse(ag<30,20, ifelse(ag<40, 30, ifelse(ag<50,40, ifelse(ag<60, 50, ifelse(ag<70, 60,70)))))
+}
+```
+
+```{r}
+e_europe <- c('Ukraine','Russia','Poland','Czech Republic','Hungary')
+w_europe <- c('Austria','Belgium','France','Germany','Italy','Netherlands','Portugal','Spain','Switzerland')
+n_europe <- c('Sweden', 'Finland', 'Denmark')
+c_europe <- c('England','Scotland','Ireland')
+
+ethnic_group <- function(countryname) {
+    ifelse((countryname %in% e_europe), 1,
+           ifelse((countryname %in% w_europe) ,2,
+                  ifelse((countryname %in% n_europe), 3,
+                         ifelse((countryname %in% c_europe), 4,
+                                countryname))))
+  ifelse((countryname %in% e_europe), 'e_europe',
+         ifelse((countryname %in% w_europe) ,'w_europe',
+                ifelse((countryname %in% n_europe), 'n_europe',
+                       ifelse((countryname %in% c_europe), 'c_europe',
+                              countryname))))
+}
+```
+
+```{r}
+binary_value <- function(value, compare_to) {
+  ifelse(value==compare_to,1,0)
+}
+```
+
+```{r}
+# Cleaning up data set
+patients <- clean_data()
+str(patients)
+
+```
+
+```{r}
+# Detect and delete emoty cells from education and correct spelling mistakes
+patients$education <- ifelse(patients$education == 'highscool', as.character('highschool'), as.character(patients$education))
+patients$education <- ifelse(as.factor(patients$education) == 'phD/MD', as.character('phd/md'), as.character(patients$education))
+patients$education <- as.factor(patients$education)
+
+```
+
+```{r}
+# Match ethnic groups with ancestry
+patients$ancestry <- as.factor(ethnic_group(patients$ancestry))
+patients[ which(patients$employment_status=='employed' & patients$age > 65), ]
+patients[ which(patients$employment_status=='retired' & patients$age > 65), ]
+patients[ which(patients$employment_status=='student' & patients$gender == 'male' & patients$disease == 'breast cancer'), ]
+patients[ which(patients$employment_status=='student'), ]
+patients[ which(patients$employment_status=='unemployed'), ]
+patients[ which(patients$gender == 'female' & patients$disease == 'breast cancer'), ]
+```
+
+```{r}
+# split the diseases into columns with binary values
+patients$hypertension <- binary_value(patients$disease,'hypertension')
+patients$endometriosis <- binary_value(patients$disease,'endometriosis')
+patients$multiple_sclerosis <- binary_value(patients$disease,'multiple sclerosis')
+patients$schizophrenia <- binary_value(patients$disease,'schizophrenia')
+patients$kidney_disease <- binary_value(patients$disease,'kidney disease')
+patients$gastritis <- binary_value(patients$disease,'gastritis')
+patients$alzheimer <- binary_value(patients$disease,'Alzheimer disease')
+patients$cancers <- binary_value(patients$disease,'cancer')
+patients$diabetes <- binary_value(patients$disease,'diabetes')
+patients$heart_disease <- binary_value(patients$disease,'heart disease')
+```
+
+```{r}
+patients$gender <- ifelse(patients$gender == 'male', 0, 1)
+patients$marital_status <- ifelse(patients$marital_status == 'single', 0, 1)
+patients$military_service <- ifelse(patients$military_service == 'no', 0, 1)
+
+str(patients)
+write.table(patients,file="C:/Users/mavul/OneDrive/Desktop/Health_care_data.csv", sep=",")
+```
+
+```{r}
+#Bar plotting diseases 
+counts <- table(patients$disease)
+
+par(las=2) # make label text perpendicular to axis
+par(mar=c(5,8,4,2)) # increase y-axis margin.
+
+barplot(sort(counts, decreasing = TRUE), main="Disease Names", 
+        xlab="Diseases Frequency", 
+        col="red",
+        horiz=TRUE,
+        cex.names=0.8,
+        xlim = c(0, 350))
+
+```
+
+
+
+

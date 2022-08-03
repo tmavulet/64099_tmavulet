@@ -1,0 +1,111 @@
+---
+title: "Machine learning random forest"
+author: "Tejasvini Mavuleti"
+date: "2022-08-03"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+Dataset <- read.csv("C:/Users/mavul/OneDrive/Desktop/Health care data.csv", header = TRUE)
+
+
+library(randomForest)
+
+head(Dataset)
+
+str(Dataset)
+
+summary(Dataset)
+names(Dataset)[1]<-"BuyingPrice"
+names(Dataset)[2]<-"Maintenance"
+names(Dataset)[3]<-"NumDoors"
+names(Dataset)[4]<-"NumPersons"
+names(Dataset)[5]<-"BootSpace"
+names(Dataset)[6]<-"Safety"
+names(Dataset)[7]<-"Condition"
+```
+
+
+# Convert all column types to factor
+```{r}
+patients <- Dataset
+patients <- patients[,-1]
+str(patients)
+patients[] <- lapply(patients, factor) 
+col_names <- names(patients)
+patients[] <- lapply(patients, factor)
+ 
+str(patients)
+summary(patients)
+
+```
+
+```{r}
+
+set.seed(100)
+
+# Splitting into Train and Test sets
+
+# Training Set : Test Set = 70 : 30 (random)
+
+Train <- sample(nrow(Dataset), 0.7*nrow(Dataset), replace = FALSE)
+TrainSet <- Dataset[Train,]
+TestSet <- Dataset[-Train,]
+summary(TrainSet)
+summary(TestSet)
+str(TrainSet)
+
+# Fine tuning parameters of Random Forest model
+model1 <- randomForest(children ~ ., data = TrainSet,  importance = TRUE)
+model1
+
+model2 <- randomForest(children ~ ., data = TrainSet, ntree = 500, mtry = 6, importance = TRUE)
+model2
+```
+
+```{r}
+# Predicting on train set
+
+PredictTrain <- predict(model2, TrainSet, type = "class")
+
+# Checking classification accuracy
+
+table(PredictTrain, TrainSet$Condition) 
+```
+
+```{r}
+# Predicting on Validation set
+prediction <- predict(model2, TestSet, type = "class")
+# Checking classification accuracy
+mean(prediction == TestSet$Condition)                    
+table(prediction,TestSet$Condition)
+
+```
+
+```{r}
+# To check important variables
+importance(model2)        
+varImpPlot(model2)     
+
+# Using For loop to identify the right mtry for model
+a1=c()
+i=5
+for (i in 3:8) {
+  model3 <- randomForest(children ~ ., data = TrainSet, ntree = 500, mtry = i, importance = TRUE)
+  predValid <- predict(model3, TestSet, type = "class")
+  a1[i-2] = mean(predValid == TestSet$children)
+}
+a1
+plot(3:8,a1)
+
+```
+
+
+
+
+
+
